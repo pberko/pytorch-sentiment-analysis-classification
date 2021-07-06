@@ -1,3 +1,4 @@
+import spacy
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -176,6 +177,8 @@ def main(args):
     writer.add_text('Test acc', str(acc_result))
     torch.save(pth, filename)
 
+    return model, dataset, device
+
 
 def train(model, iterator, optimizer, criterion):
     epoch_loss = 0
@@ -215,7 +218,19 @@ def evaluate(model, iterator, criterion):
     return epoch_loss / len(iterator), epoch_acc / len(iterator)
 
 
+def predict_sentence(sentence, model, dataset, device):
+    nlp = spacy.load("en_core_web_sm")
+    tokenized = [tok.text for tok in nlp.tokenizer(sentence)]
+    indexed = [dataset.TEXT.vocab.stoi[t] for t in tokenized]
+    tensor = torch.LongTensor(indexed).to(device)
+    tensor = tensor.unsqueeze(1)
+    prediction = F.sigmoid(model(tensor))
+    return prediction.item()
+
 if __name__ == '__main__':
     args = parse_args()
     print(args)
-    main(args)
+    model, dataset, device = main(args)
+    print("good ever", predict_sentence("good ever", model, dataset, device))
+    print("bad ever", predict_sentence("good ever", model, dataset, device))
+
